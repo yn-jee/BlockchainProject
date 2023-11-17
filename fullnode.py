@@ -3,22 +3,32 @@ import time
 import transaction as tx
 
 class full_node(tx.transaction):
-    def __init__(self, node_num, stack_matrix):
+    def __init__(self, node_num, stack_matrix_block, stack_matrix_tx):
         super().__init__()
         self.node_num = node_num
 
-        # stack_matrix의 i번째 열의 원소들을 자신의 send_stack에 저장
-        self.send_stack = []
-        for row in stack_matrix:
-            self.send_stack.append(row[node_num])
+        # block_stack_matrix의 i번째 열의 원소들을 자신의 send_stack_block에 저장
+        self.send_stack_block = []
+        for row in stack_matrix_block:
+            self.send_stack_block.append(row[node_num])
 
-        # stack_matrix의 i번째 행을 자신의 recv_stack으로 사용
-        self.recv_stack = stack_matrix[node_num]
+        # block_stack_matrix의 i번째 행을 자신의 recv_stack_block으로 사용
+        self.recv_stack_block = stack_matrix_block[node_num]
 
-        full_num = len(stack_matrix)
+        """full_num = len(stack_matrix_block)
         for i in range(full_num):
-            if self.send_stack[i] != None and self.send_stack[i]:
-                self.send_stack[i].pop()
+            if self.send_stack_block[i] != None and self.send_stack_block[i]:
+                self.send_stack_block[i].pop()
+                self.send_stack_block[i].append(1313)
+                self.send_stack_block[i].append("done")"""
+
+        # stack_matrix_tx의 i번째 열의 원소들을 자신의 send_stack_tx에 저장
+        self.send_stack_tx = []
+        for row in stack_matrix_tx:
+            self.send_stack_tx.append(row[node_num])
+
+        # stack_matrix_tx의 i번째 행을 자신의 recv_stack_tx로 사용
+        self.recv_stack_tx = stack_matrix_tx[node_num]
 
         self.test = 0
 
@@ -32,7 +42,7 @@ class full_node(tx.transaction):
 
     """def send_message(self, message):
         print(f"{self.node_num} sending: {message}")
-        self.send_stack.put(message)
+        self.send_stack_block.put(message)
 
     def receive_message(self):
         while True:

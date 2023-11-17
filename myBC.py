@@ -6,7 +6,7 @@ import multiprocessing
 class myBC(fn.full_node, un.user_node):
     def initialize(self, full_num, user_num, full_links_num):    # number of full/user nodes, number of full-full links
 
-        ### random topology 구성하기
+        #----random topology 구성하기----
 
         shuffled_index = [i for i in range(full_num)]
         rd.shuffle(shuffled_index)
@@ -39,27 +39,44 @@ class myBC(fn.full_node, un.user_node):
                 matrix_full[temp_link[0]][temp_link[1]] = 1
                 matrix_full[temp_link[1]][temp_link[0]] = 1
 
+        #----노드 생성----
+
         # 이 모듈이 직접 실행될 때에만 다음 코드를 실행
         if __name__ == "__main__" :
             # 노드 잇기 - 두 노드 간 공유하는 스택들로써.
             m = multiprocessing.Manager()
-            stack_matrix = [[m.list() for _ in range(full_num)] for _ in range(full_num)]
-            # stack_matrix[i][j] : a stack shared by node_i, node_j
-            #                       contains messages from node_j to node_i
-            #                       so that node_i can search all stack_matrix[i][*] before every mining
+
+            # stack_matrix_block[i][j] :
+            # "A stack" shared between node_i, node_j
+            # contains messages from node_j to node_i propagating mined blocks
+            # so that node_i can search all stack_matrix_block[i][*] before every hash operation
+            stack_matrix_block = [[m.list() for _ in range(full_num)] for _ in range(full_num)]
             for i in range(full_num):
                 for j in range(full_num):
                     if matrix_full[i][j] != 1:
                         # matrix_full에서 해당하는 위치가 1이 아니라면 stack 삭제
-                        stack_matrix[i][j] = None
-                    else:
-                        stack_matrix[i][j].append("hi")
+                        stack_matrix_block[i][j] = None
+                    """else:
+                        stack_matrix_block[i][j].append("hi")"""
+
+            # stack_matrix_tx[i][j] :
+            # "A stack" shared between node_i, node_j
+            # contains messages from node_j to node_i propagating valid transactions
+            # so that node_i can search all stack_matrix_tx[i][*] before every block building
+            stack_matrix_tx = [[m.list() for _ in range(full_num)] for _ in range(full_num)]
+            for i in range(full_num):
+                for j in range(full_num):
+                    if matrix_full[i][j] != 1:
+                        # matrix_full에서 해당하는 위치가 1이 아니라면 stack 삭제
+                        stack_matrix_tx[i][j] = None
+                    """else:
+                        stack_matrix_tx[i][j].append("hi")"""
 
             list_full = []
             list_user = []
 
             for i in range(full_num):
-                list_full.append(fn.full_node(i, stack_matrix))
+                list_full.append(fn.full_node(i, stack_matrix_block, stack_matrix_tx))
 
             print("set")
 
