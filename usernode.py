@@ -3,8 +3,10 @@ import transaction as tx
 import random as rd
 import ecdsa as ec
 class user_node(tx.transaction):
-    def __init__(self, node_num = 0):
+    def __init__(self, node_num, queue_user):
         super().__init__()
+        self.send_queue = queue_user
+
         #----비대칭키 생성----
         # sk: signing key(private key)
         # vk: verifying key(public key)
@@ -23,6 +25,8 @@ class user_node(tx.transaction):
             new_tx = tx.transaction(Vid, modelName, manufacturedTime)
             self.cars.append(car)
             self.txs.append(new_tx)
+            # 새로 생성한 트랜잭션 모두를 자신과 연결된 full node에 put
+            queue_user.put(new_tx)
 
-new_user = user_node()
-print()
+
+#print()

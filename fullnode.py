@@ -3,7 +3,7 @@ import time
 import transaction as tx
 
 class full_node(tx.transaction):
-    def __init__(self, node_num, stack_matrix_block, stack_matrix_tx):
+    def __init__(self, node_num, stack_matrix_block, stack_matrix_tx, queue_user):
         super().__init__()
         self.node_num = node_num
 
@@ -29,6 +29,7 @@ class full_node(tx.transaction):
 
         # stack_matrix_tx의 i번째 행을 자신의 recv_stack_tx로 사용
         self.recv_stack_tx = stack_matrix_tx[node_num]
+        self.recv_queue = queue_user
 
         self.test = 0
 
