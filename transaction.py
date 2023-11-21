@@ -1,7 +1,8 @@
 import random as rd
 import uuid
 from datetime import datetime, timedelta
-
+import ecdsa as ec
+from hashlib import sha256
 
 class vehicle:
     def __init__(self):
@@ -50,15 +51,129 @@ class vehicle:
         return self.Vid, self.modelName, self.manufacturedTime
 
 
+class tx_in:
+    def __init__(self, prev_txid = "", sig = ""):
+        self.prev_txid = prev_txid    # hash of the transaction with previous output
+        self.sig = sig      # signature for the UTXO
+
+    def encode(self):
+        self.prev_txid.encode()
+        return self.prev_txid.encode() + self.sig.encode()
 
 
-class transaction(vehicle):
+class tx_out(vehicle):
+    def __init__(self, vk, Vid = -1, modelName = "", manufacturedTime = datetime(1970, 1, 1)):
+        super().__init__()
+        #----values----
+            # values from vehicle
+        self.Vid = Vid
+        self.modelName = modelName
+        self.manufacturedTime = manufacturedTime
+            # newly generated values when initializing
+        self.tradeCnt = 1  # 시작 값은 1
+        self.tradingTime = datetime(1970, 1, 1)
+        self.tradingTime = self.generate_trading_time()
+        self.price = 0
+        self.generate_price()
+        self.others = {}
+        self.others = self.generate_others()
+
+        self.vk = vk    # verifying key that will receive this transaction
+
+
+    # 거래 날짜를 랜덤하게 생성
+    def generate_trading_time(self):
+        # 기존의 값이 1970-01-01인 경우(객체를 처음 생성하는 경우, 1차 판매인 경우)
+        # 제조 날짜에 180일 이하의 날짜를 랜덤하게 추가
+        if self.tradingTime == datetime(1970, 1, 1):
+            # 랜덤한 일 수 생성
+            random_days = rd.randint(0, 180)
+
+            # 제조 날짜에 랜덤한 일 수 더하기
+            random_date = self.manufacturedTime + timedelta(days=random_days)
+            return random_date
+
+        # 기존의 값이 1970-01-01인 경우(2차 이상의 판매인 경우)
+        # 기존의 tradingTime에 30일 이하의 날짜를 랜덤하게 추가
+        else:
+            random_days = rd.randint(0, 30)
+
+            # 제조 날짜에 랜덤한 일 수 더하기
+            random_date = self.tradingTime + random_days
+            return random_date
+
+    # 달러 단위 가격을 랜덤하게 생성
+    def generate_price(self):
+        # 기존의 값이 0인 경우(객체를 처음 생성하는 경우)
+        # 20,000 이상 60,000 이하의 값을 리턴
+        if self.price == 0:
+            return rd.randint(20, 60) * 1000
+
+        # 기존의 값이 0이 아닌 경우(자동차의 가격이 변동되는 경우)
+        # 기존의 가격에 0.8 ~ 1.2 중 랜덤한 값을 곱해 만든 새로운 가격을 리턴
+        else:
+            return int(rd.randint(80, 120) / 100 * self.price)
+
+    # others를 랜덤하게 생성
+    def generate_others(self):
+        parts = [
+            "front left fender", "front right fender", "rear left fender", "rear right fender",
+            "left rocker panel", "right rocker panel",
+            "front bumper", "rear bumper",
+            "radiator grille",
+            "bonnet",
+            "front left door", "front right door", "rear left door", "rear right door",
+            "front left wheel", "front right wheel", "rear left wheel", "rear right wheel",
+            "left head lamp", "right head lamp",
+            "left turn signal lamp", "right turn signal lamp"
+        ]
+        states = ["damaged", "replaced"]
+
+        # 파손 및 교체가 추가되지 않을 확률 0.5
+        # 파손 및 교체가 한 번 추가될 확률 0.25
+        # 파손 및 교체가 두 번 추가될 확률 0.25
+        add_to_others = rd.choices(range(0, 3), weights=[0.5, 0.25, 0.25])[0]
+
+        if add_to_others == 0:
+            return self.others
+
+        else:
+            i = 0
+
+            while i < add_to_others:
+                part = rd.choice(parts)
+
+                if part not in self.others:
+                    state = rd.choice(states)
+                    self.others[part] = state
+                    i = i + 1
+            return self.others
+
+    def encode(self):
+        return str(self.Vid).encode() + self.modelName.encode() + str(self.manufacturedTime).encode() \
+                + str(self.tradeCnt).encode() + str(self.tradingTime).encode() + str(self.price).encode() \
+                + str(self.others).encode() + self.vk.encode()
+
+
+class transaction(tx_in, tx_out):
+    def __init__(self, vin = None, vout = None):
+        vin = tx_in("", "")
+        vout = tx_out("", -1, "", datetime(1970, 1, 1))
+        self.vin = vin
+        self.vout = vout
+        self.txid = sha256(vin.encode() + vout.encode())
+
+
+
+
+"""class transaction(vehicle):
     # 자식 클래스에서의 super().__init__() 실행 시 오류 방지를 위한 default 값들
     def __init__(self, Vid = -1, modelName = -1, manufacturedTime = datetime(1970, 1, 1)):
         super().__init__()
         self.Vid = Vid
         self.modelName = modelName
         self.manufacturedTime = manufacturedTime
+
         #self.trID
         self.tradeCnt = 1   # 시작 값은 1
         self.tradingTime = datetime(1970, 1, 1)
@@ -67,6 +182,9 @@ class transaction(vehicle):
         self.generate_price()
         self.others = {}
         self.others = self.generate_others()
+
+        self.trID = self.hash_tx()
+
 
     # 거래 날짜를 랜덤하게 생성
     def generate_trading_time(self):
@@ -137,8 +255,15 @@ class transaction(vehicle):
             return self.others
 
 
-"""new_tx = transaction()
-print()
-new_tx.generate_price()
-new_tx.generate_others()
-print()"""
+    def hash_tx(self):
+        temp_str = str(self.Vid) + str(self.tradeCnt) + str(self.modelName) + str(self.manufacturedTime) + \
+                   str(self.price) + str(self.tradingTime) + str(self.others)
+        return sha256(temp_str)
+
+
+
+#new_tx = transaction()
+#print()
+#new_tx.generate_price()
+#new_tx.generate_others()
+#print()"""
